@@ -1,1 +1,1 @@
-from utils import *
+from utils.exceptions import VacanciesNotAvailable
