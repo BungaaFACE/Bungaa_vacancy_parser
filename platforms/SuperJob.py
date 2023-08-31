@@ -1,25 +1,82 @@
 import os
 import requests
-from platforms.Platform import Platform
+if __name__ != '__main__':
+    from platforms.Platform import Platform
+    from utils import VacanciesNotAvailable
+else:
+    from Platform import Platform
 
 
 class SuperJobAPI(Platform):
     def __init__(self):
-        self.api_key = os.environ['HEADHUNTER_API_KEY']
-        self.base_url = os.environ['HEADHUNTER_API_URL']
-        self.headers = {'Authorization': f'Bearer {self.api_key}'}
+        credentials = self.get_api_data('SuperJob')
+        id = int(credentials['app_id'])
+        user_login = credentials['login']
+        user_password = credentials['password']
+        self.secret = credentials['app_secret']
+        url = 'https://api.superjob.ru/2.0/oauth2/password/'
+        headers = {
+            'login': user_login,
+            'password': user_password,
+            'client_id': id,
+            "client_secret": self.secret}
+        req = requests.get(url, params=headers)
+        self.access_token = req.json()['access_token']
+        self.token_type = req.json()['token_type']
+        self.authorization = f'{self.token_type} {self.access_token[3:]}'
+        self.headers = {'Host': 'api.superjob.ru',
+                        'X-Api-App-Id': self.secret,
+                        'Authorization': self.authorization,
+                        'Content-Type': 'application/json', }
 
-    def get_vacancies(self, filter_value):
+    def transform_to_instance(self, vacancy_list):
+        # title, salary_from, salary_to, currency, town, experience, info, firm_name, url, platform
+        for vacancy in vacancy_list:
+            title = vacancy['profession']
+            salary_from = vacancy.get('payment_from', '')
+            salary_to = vacancy.get('payment_to', '')
+            currency = vacancy.get('currency', '')
+            town = vacancy['town'].get('title', 'Не указан')
+            experience = vacancy['experience'].get('title', 'Не указан')
+            info = self.remove_html_tags(vacancy.get('vacancyRichText') or '')
+            firm_name = vacancy.get('firm_name', 'Не указано')
+            url = vacancy.get('link', 'Отсутствует')
+            platform = 'SuperJob'
+
+            self.vacancy_class(title, salary_from, salary_to, currency,
+                               town, experience, info, firm_name, url, platform)
+
+    def get_vacancies(self, filter_value=''):
         url = 'https://api.superjob.ru/2.0/vacancies/'
-        params = {'keyword': filter_value}
+        params = {'count': 100,
+                  'page': 0, }
+        if filter_value:
+            params['keyword'] = filter_value
 
-        req = requests.get(url, params=params)
-        data = req.json()
-        req.close()
+        per_page = 100
+        while True:
+
+            page_data = self.get_page_data(
+                url, params=params, headers=self.headers)
+
+            if page_data:
+                page_vacancies = page_data['objects']
+                self.transform_to_instance(page_vacancies)
+                params['page'] += 1
+
+                # Если вакансий на странице меньше максимального, эта страница последняя
+                if len(page_vacancies) < per_page:
+                    break
+
+            # Если данных нет и страница нулевая - то прекращаем поиск
+            elif params['page'] == 0:
+                raise VacanciesNotAvailable(
+                    'Список вакансий HeadHunter недоступен. Попробуйте позже')
 
 
 if __name__ == '__main__':
-    pass
+    data = SuperJobAPI().get_vacancies('Python Developer')
+    print(data.all)
 """
 {
     "objects":[

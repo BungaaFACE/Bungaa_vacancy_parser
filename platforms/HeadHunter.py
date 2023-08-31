@@ -1,11 +1,8 @@
 import os
 import sys
 import requests
-if __name__ != '__main__':
-    from platforms.Platform import Platform
-    from utils import VacanciesNotAvailable
-else:
-    from Platform import Platform
+from platforms.Platform import Platform
+from utils import VacanciesNotAvailable
 
 
 class HeadHunterAPI(Platform):
@@ -16,86 +13,90 @@ class HeadHunterAPI(Platform):
         # self.headers = {'Authorization': f'Bearer {self.api_key}'}
         pass
 
-    def parse_vacancy_data(self, vacancy_dict):
-        """    'id': '73078936', 
-                'premium': False, 
-                'name': 'Cпециалист контактного центра (лид-менеджер), удаленно', 
-                'department': None, 
-                'has_test': False, 
-                'response_letter_required': False, 
-                'area': {'id': '1', 'name': 'Москва', 'url': 'https://api.hh.ru/areas/1?host=hh.ru'}, 
-                'salary': {'from': 30000, 'to': 60000, 'currency': 'RUR', 'gross': False}, 
-                'type': {'id': 'open', 'name': 'Открытая'}, 
-                'address': None, 
-                'response_url': None, 
-                'sort_point_distance': None, 
-                'published_at': '2023-08-29T14:31:49+0300', 
-                'created_at': '2023-08-29T14:31:49+0300', 
-                'archived': False, 
-                'apply_alternate_url': 'https://hh.ru/applicant/vacancy_response?vacancyId=73078936', 
-                'show_logo_in_search': None, 
-                'insider_interview': None, 
-                'url': 'https://api.hh.ru/vacancies/73078936?host=hh.ru', 
-                'alternate_url': 'https://hh.ru/vacancy/73078936', """
-        if vacancy_dict['type'].get('id') == 'open':
-            name = vacancy_dict['name']
-            location = vacancy_dict['area']['name']
-            salary = f"{vacancy_dict['salary']['from']}-{vacancy_dict['salary']['to']} {vacancy_dict['salary']['currency']}"
-            url = vacancy_dict['alternate_url']
-
-    def get_vacancies(self, filter_words=''):
-        def get_page_data(filter_words='', page=0, retry_num=5):
-
-            url = "https://api.hh.ru/vacancies"
-            params = {
-                "area": 1,  # Specify the desired area ID (1 is Moscow)
-                "page": page,  # Specify the page number
-                "per_page": 100,  # Number of vacancies per page
-                "host": 'hh.ru'
-            }
-            # Если ищем по ключевым словам
-            if filter_words:
-                params['text'] = filter_words
-            # Посылаем запрос к API
-            for _ in range(retry_num):
-                req = requests.get(url, params)
-                if req.status_code == 200:
-                    data = req.json()
-                    req.close()
-                    return data
-                else:
-                    print(
-                        f"Request failed with status code: {req.status_code}. Trying again")
-                    continue
+    def transform_to_instance(self, vacancy_list):
+        # title, salary_from, salary_to, currency, town, experience, info, firm_name, url, platform
+        for vacancy in vacancy_list:
+            title = vacancy['name']
+            if vacancy.get('salary'):
+                salary_from = vacancy['salary'].get('from', '')
+                salary_to = vacancy['salary'].get('to', '')
+                currency = vacancy['salary'].get('currency', '')
             else:
-                print(f'Request failed for {retry_num} times. Skipping page.')
+                salary_from = 'Не указана'
+                salary_to = ''
+                currency = ''
+            if currency == 'RUR':
+                currency = 'rub'
+            town = vacancy['area'].get('name', 'Не указан')
+            experience = vacancy['experience'].get('name', 'Не указан')
 
-        self.all_vacancies = []
-        data = get_page_data(filter_words)
-        return data
-        if data:
-            all_vacancies.extend(data["items"])
-            # data['pages'] показывает некорректное кол-во страниц, поэтому рассчитываем вручную
-            num_of_pages = int(data['found']) // 100 + 1
+            requirement = self.remove_html_tags(
+                vacancy['snippet'].get('requirement', '') or '')
+            responsibility = self.remove_html_tags(
+                vacancy['snippet'].get('responsibility', '') or '')
 
-            for page in range(1, num_of_pages+1):
-                data = get_page_data(filter_words, page)
+            if requirement and responsibility:
+                info = f'Требования: {requirement} Ответственность: {responsibility}'
+            elif not requirement and not responsibility:
+                info = 'Не указана'
+            else:
+                info = requirement + responsibility
+            firm_name = vacancy['employer'].get('name', 'Не указано')
+            url = vacancy.get('alternate_url', 'Отсутствует')
+            platform = 'HeadHunter'
 
-            return self.all_vacancies
+            self.vacancy_class(title, salary_from, salary_to, currency,
+                               town, experience, info, firm_name, url, platform)
 
-        else:
-            raise VacanciesNotAvailable(
-                'Список вакансий HeadHunter недоступен. Попробуйте позже')
+    def get_vacancies(self, filter_value=''):
+        url = "https://api.hh.ru/vacancies"
+        params = {
+            "area": 1,  # Specify the desired area ID (1 is Moscow)
+            "page": 0,  # Specify the page number
+            "per_page": 100,  # Number of vacancies per page
+            "host": 'hh.ru'
+        }
+        # Если ищем по ключевым словам
+        if filter_value:
+            params['text'] = filter_value
+
+        per_page = 100
+        fault_get = 0
+        while True:
+
+            page_data = self.get_page_data(url, params=params)
+
+            if page_data:
+                page_vacancies = page_data['items']
+                self.transform_to_instance(page_vacancies)
+                params['page'] += 1
+                fault_get = 0
+
+                # Если вакансий на странице меньше максимального, эта страница последняя
+                if len(page_vacancies) < per_page:
+                    break
+
+            # Если данных нет и страница нулевая - то прекращаем поиск
+            elif params['page'] == 0:
+                raise VacanciesNotAvailable(
+                    'Список вакансий HeadHunter недоступен. Попробуйте позже')
+
+            else:
+                fault_get += 1
+                params['page'] += 1
+                # Если 3 страницы подряд не грузятся - останавливаем загрузку
+                if fault_get == 3:
+                    print(
+                        f'HH API не дает выгрузить страницы после {params["page"]-3}. Остановка.')
+                    break
 
 
 if __name__ == '__main__':
-    vacancies = HeadHunterAPI().get_vacancies('Python')
-    print(vacancies['items'][0]['snippet']['responsibility'])
-    # vacancies{
-    # 'items', - вакансии
-    # 'found', - количество найденных вакансий
-    # 'pages', - кол-во страниц - некорректное кол-во
-    # 'per_page' - кол-во страниц}
+    sys.path.insert(0,
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    hh_api = HeadHunterAPI()
+    hh_api.get_vacancies('Python Developer')
+    print(hh_api.vacancy_class.all_vacancies)
 
 ''' vacancy {
     'id': '73078936', 
