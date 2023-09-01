@@ -18,22 +18,22 @@ class HeadHunterAPI(Platform):
         for vacancy in vacancy_list:
             title = vacancy['name']
             if vacancy.get('salary'):
-                salary_from = vacancy['salary'].get('from', '')
-                salary_to = vacancy['salary'].get('to', '')
-                currency = vacancy['salary'].get('currency', '')
+                salary_from = vacancy['salary'].get('from', "")
+                salary_to = vacancy['salary'].get('to', "")
+                currency = vacancy['salary'].get('currency', "")
             else:
-                salary_from = 'Не указана'
+                salary_from = ''
                 salary_to = ''
                 currency = ''
             if currency == 'RUR':
                 currency = 'rub'
-            town = vacancy['area'].get('name', 'Не указан')
-            experience = vacancy['experience'].get('name', 'Не указан')
+            town = vacancy['area'].get('name', '')
+            experience = vacancy['experience'].get('name', '')
 
             requirement = self.remove_html_tags(
-                vacancy['snippet'].get('requirement', '') or '')
+                vacancy['snippet'].get('requirement', "") or "")
             responsibility = self.remove_html_tags(
-                vacancy['snippet'].get('responsibility', '') or '')
+                vacancy['snippet'].get('responsibility', "") or "")
 
             if requirement and responsibility:
                 info = f'Требования: {requirement} Ответственность: {responsibility}'

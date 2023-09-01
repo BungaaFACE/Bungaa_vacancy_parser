@@ -1,6 +1,6 @@
 import export_project_folder
 from platforms import HeadHunterAPI, SuperJobAPI
-from utils import Vacancy
+from utils import Vacancy, JSONSaver, TXTSaver, CSVSaver, XLSXSaver
 
 # # Создание экземпляра класса для работы с API сайтов с вакансиями
 # hh_api = HeadHunterAPI()
@@ -42,8 +42,9 @@ from utils import Vacancy
 
 
 if __name__ == "__main__":
-    # user_interaction()
-    sj_api = HeadHunterAPI()
-    sj_api.get_vacancies('Python Dev')
-    print(len(Vacancy.all_vacancies))
-    print(Vacancy.all_vacancies[0].__dict__)
+    # # user_interaction()
+    # sj_api = HeadHunterAPI()
+    # sj_api.get_vacancies('Python Dev')
+    jsaver = XLSXSaver()
+    jsaver.load_from_file()
+    jsaver.save_to_file()

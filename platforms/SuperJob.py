@@ -36,11 +36,11 @@ class SuperJobAPI(Platform):
             salary_from = vacancy.get('payment_from', '')
             salary_to = vacancy.get('payment_to', '')
             currency = vacancy.get('currency', '')
-            town = vacancy['town'].get('title', 'Не указан')
-            experience = vacancy['experience'].get('title', 'Не указан')
+            town = vacancy['town'].get('title', '')
+            experience = vacancy['experience'].get('title', '')
             info = self.remove_html_tags(vacancy.get('vacancyRichText') or '')
-            firm_name = vacancy.get('firm_name', 'Не указано')
-            url = vacancy.get('link', 'Отсутствует')
+            firm_name = vacancy.get('firm_name', '')
+            url = vacancy.get('link', '')
             platform = 'SuperJob'
 
             self.vacancy_class(title, salary_from, salary_to, currency,
