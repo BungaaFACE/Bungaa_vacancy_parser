@@ -1,0 +1,4 @@
+.vscode/*
+*.pyc
+credentials.json
+vacancies.*
