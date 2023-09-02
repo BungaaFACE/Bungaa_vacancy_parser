@@ -4,7 +4,7 @@ import os
 
 
 XLSX_PATH = os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))) + os.path.sep + 'vacansies.xlsx'
+    os.path.abspath(__file__))) + os.path.sep + 'vacancies.xlsx'
 
 
 class XLSXSaver(Saver):
@@ -17,7 +17,7 @@ class XLSXSaver(Saver):
 
         vacancies_dataframe = pd.DataFrame.from_dict(vacancies_data)
         vacancies_dataframe.to_excel(
-            XLSX_PATH, index=False, sheet_name='Vacansies')
+            XLSX_PATH, index=False, sheet_name='Vacancies')
 
         del vacancies_data
         del vacancies_dataframe
@@ -25,7 +25,7 @@ class XLSXSaver(Saver):
     def load_from_file(self):
         self.vacancy_class.clear_vacancies()
 
-        vacancies_dataframe = pd.read_excel(XLSX_PATH, sheet_name='Vacansies')
+        vacancies_dataframe = pd.read_excel(XLSX_PATH, sheet_name='Vacancies')
         vacancies_list = vacancies_dataframe.to_dict("records")
 
         for vacancy in vacancies_list:

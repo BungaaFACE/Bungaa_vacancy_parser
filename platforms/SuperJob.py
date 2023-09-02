@@ -73,6 +73,9 @@ class SuperJobAPI(Platform):
                 raise VacanciesNotAvailable(
                     'Список вакансий HeadHunter недоступен. Попробуйте позже')
 
+        # Синхронизация найденных вакасний в класс Saver
+        super().get_vacancies()
+
 
 if __name__ == '__main__':
     data = SuperJobAPI().get_vacancies('Python Developer')

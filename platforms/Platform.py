@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from utils import Vacancy
+from utils import Vacancy, sync_vacancies
 import requests
 import json
 import os
@@ -15,7 +15,7 @@ class Platform(ABC):
 
     @abstractmethod
     def get_vacancies(self):
-        pass
+        sync_vacancies()
 
     @abstractmethod
     def transform_to_instance(self, vacancy_list):

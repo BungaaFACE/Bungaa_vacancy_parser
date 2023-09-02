@@ -73,7 +73,7 @@ class HeadHunterAPI(Platform):
                 fault_get = 0
 
                 # Если вакансий на странице меньше максимального, эта страница последняя
-                if len(page_vacancies) < per_page:
+                if len(page_vacancies) < per_page or params['page'] == 21:
                     break
 
             # Если данных нет и страница нулевая - то прекращаем поиск
@@ -87,8 +87,11 @@ class HeadHunterAPI(Platform):
                 # Если 3 страницы подряд не грузятся - останавливаем загрузку
                 if fault_get == 3:
                     print(
-                        f'HH API не дает выгрузить страницы после {params["page"]-3}. Остановка.')
+                        f'HeadHunter API не дает выгрузить страницы после {params["page"]-3}. Остановка.')
                     break
+
+        # Синхронизация найденных вакасний в класс Saver
+        super().get_vacancies()
 
 
 if __name__ == '__main__':

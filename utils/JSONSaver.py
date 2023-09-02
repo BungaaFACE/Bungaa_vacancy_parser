@@ -3,7 +3,7 @@ import json
 import os
 
 JSON_PATH = os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))) + os.path.sep + 'vacansies.json'
+    os.path.abspath(__file__))) + os.path.sep + 'vacancies.json'
 
 
 class JSONSaver(Saver):
@@ -23,12 +23,12 @@ class JSONSaver(Saver):
         self.vacancy_class.clear_vacancies()
 
         with open(JSON_PATH, 'r', encoding='utf-8') as json_file:
-            vacansies_json = json.load(json_file)
+            vacancies_json = json.load(json_file)
 
-        for vacancy in vacansies_json:
+        for vacancy in vacancies_json:
             del vacancy['id']
             self.convert_salary_to_int(vacancy)
             self.vacancy_class(**vacancy)
 
-        del vacansies_json
+        del vacancies_json
         super().load_from_file()
